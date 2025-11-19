@@ -1,0 +1,31 @@
+LOAD DATABASE
+    FROM mssql://juan.silva:q1w2e3r4.123@192.168.134.13:1433/AIBI_HIST
+    INTO postgresql://postgres:Perrobotill0@172.16.0.206:5432/postgres
+
+WITH 
+    include drop,
+    create tables,
+    create indexes,
+    reset sequences,
+    workers = 8,
+    concurrency = 4,
+    batch rows = 1000,
+    batch size = 20 MB
+
+CAST 
+    type datetime to timestamp drop default drop not null using zero-dates-to-null,
+    type datetime2 to timestamp drop default drop not null using zero-dates-to-null,
+    type nvarchar to text drop typemod,
+    type nchar to text drop typemod,
+    type uniqueidentifier to uuid using byte-vector-to-uuid,
+    type bit to boolean,
+    type money to numeric,
+    type smallmoney to numeric,
+    type tinyint to smallint,
+    type float to float8
+
+EXCLUDING TABLE NAMES MATCHING 'sysdiagrams', 'sysconstraints', 'syssegments'
+
+-- Mapear esquema dbo de SQL Server al esquema analitica en PostgreSQL
+INCLUDING ONLY TABLE NAMES MATCHING ~/dbo./
+    IN SCHEMA 'dbo' INTO 'analitica';

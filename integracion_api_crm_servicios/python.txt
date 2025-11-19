@@ -1,0 +1,8 @@
+#Activar ambiente venv
+source .venv-crm/bin/activate
+
+#Desactivar ambiente venv
+deactivate
+
+#Verificar si está activo
+echo "$VIRTUAL_ENV"

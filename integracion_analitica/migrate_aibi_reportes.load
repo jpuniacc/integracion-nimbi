@@ -1,0 +1,22 @@
+LOAD DATABASE
+    FROM mssql://juan.silva:q1w2e3r4.123@192.168.134.13:1433/AIBI_REPORTES
+    INTO postgresql://postgres:Perrobotill0@172.16.0.206:5432/postgres
+
+WITH 
+    include drop,
+    create tables,
+    create indexes,
+    reset sequences,
+    workers = 8,
+    concurrency = 4
+
+CAST 
+    type datetime to timestamp,
+    type datetime2 to timestamp,
+    type nvarchar to text drop typemod,
+    type bit to boolean
+
+EXCLUDING TABLE NAMES MATCHING 'sysdiagrams'
+
+INCLUDING ONLY TABLE NAMES MATCHING ~/dbo./
+    IN SCHEMA 'dbo' INTO 'analitica';
