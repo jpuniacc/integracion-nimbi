@@ -1,0 +1,45 @@
+# Entornos virtuales
+.venv/
+.venv-crm/
+venv/
+env/
+ENV/
+
+# Variables de entorno
+.env
+.env.local
+.env.*.local
+
+# Archivos CSV temporales
+integracion_api_crm_servicios/temp_csv/*.csv
+temp_csv/*.csv
+
+# Logs
+integracion_api_crm_servicios/scripts/logs/*.log
+
+# Backups
+integracion_api_crm_servicios/scripts/backups/*.json
+
+# Archivos de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos temporales
+*.tmp
+*.bak
+*.swp
+
