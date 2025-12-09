@@ -17,6 +17,7 @@ import pandas as pd
 import paramiko
 from pathlib import Path
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
 
 # Cargar .env del proyecto
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -47,6 +48,15 @@ POSTGRES_CONFIG = {
     'port': int(os.getenv('DB_PORT', '5432')),
 }
 DB_SEARCH_PATH = os.getenv('DB_SEARCH_PATH', 'nimbi, public')
+
+def crear_engine_postgresql():
+    """Crea un engine de SQLAlchemy para PostgreSQL"""
+    connection_string = (
+        f"postgresql://{POSTGRES_CONFIG['user']}:{POSTGRES_CONFIG['password']}"
+        f"@{POSTGRES_CONFIG['host']}:{POSTGRES_CONFIG['port']}"
+        f"/{POSTGRES_CONFIG['database']}"
+    )
+    return create_engine(connection_string)
 
 # Configuración de CSV (formato Nimbi)
 CSV_CONFIG = {
@@ -181,13 +191,54 @@ def cargar_a_postgresql(datos, columnas):
         cursor.execute('TRUNCATE TABLE nimbi."05_beneficios_alumnos" RESTART IDENTITY CASCADE;')
         conn.commit()
         
-        # Preparar los datos - La fecha_corte ya viene en los datos de SQL Server
-        log("Preparando datos para inserción...")
+        # Mapear columnas de la query al orden de la tabla PostgreSQL
+        # La query devuelve: CODCLI, ANIO_INGRESO_INSTITUCION, ANIO_BENEFICIO, PERIODO_BENEFICIO, ...
+        # La tabla espera: codcli, anio_beneficio, periodo_beneficio, ..., anio_ingreso_institucion
+        # Necesitamos reordenar: mover ANIO_INGRESO_INSTITUCION al final
         
-        # Query de inserción
+        # Crear diccionario de mapeo: nombre_columna_query -> índice
+        columna_indices = {col: idx for idx, col in enumerate(columnas)}
+        
+        # Orden de columnas en la tabla PostgreSQL (sin el id que es auto-generado)
+        columnas_tabla = [
+            'codcli',
+            'anio_beneficio',
+            'periodo_beneficio',
+            'codigo_beneficio',
+            'descripcion_beneficio',
+            'monto_beneficio',
+            'origen_beneficio',
+            'tipo_beneficio',
+            'aplica_en',
+            'estado_beneficio',
+            'fecha_corte',
+            'anio_ingreso_institucion'
+        ]
+        
+        # Mapear nombres de columnas de la query a minúsculas para comparación
+        columnas_query_lower = [col.lower() for col in columnas]
+        
+        # Crear lista de índices para reordenar los datos
+        indices_reordenados = []
+        for col_tabla in columnas_tabla:
+            try:
+                idx = columnas_query_lower.index(col_tabla)
+                indices_reordenados.append(idx)
+            except ValueError:
+                log(f"⚠ Advertencia: Columna {col_tabla} no encontrada en la query")
+                raise ValueError(f"Columna {col_tabla} no encontrada en los resultados de la query")
+        
+        # Reordenar los datos según el orden de la tabla
+        log("Preparando datos para inserción...")
+        datos_reordenados = []
+        for fila in datos:
+            fila_reordenada = tuple(fila[idx] for idx in indices_reordenados)
+            datos_reordenados.append(fila_reordenada)
+        
+        # Query de inserción con columnas en el orden correcto
         insert_query = f"""
         INSERT INTO nimbi."05_beneficios_alumnos" (
-            {', '.join(columnas)}
+            {', '.join(columnas_tabla)}
         ) VALUES %s
         """
         
@@ -196,12 +247,12 @@ def cargar_a_postgresql(datos, columnas):
         batch_size = 1000
         total_insertados = 0
         
-        for i in range(0, len(datos), batch_size):
-            batch = datos[i:i + batch_size]
+        for i in range(0, len(datos_reordenados), batch_size):
+            batch = datos_reordenados[i:i + batch_size]
             execute_values(cursor, insert_query, batch)
             conn.commit()
             total_insertados += len(batch)
-            log(f"  → Insertados {total_insertados}/{len(datos)} registros...")
+            log(f"  → Insertados {total_insertados}/{len(datos_reordenados)} registros...")
         
         # Verificar total
         cursor.execute('SELECT COUNT(*) FROM nimbi."05_beneficios_alumnos";')
@@ -264,7 +315,7 @@ def limpiar_backslashes_csv(archivo_path: Path):
         log(f"⚠ Advertencia en limpieza de backslashes: {e}")
         # No lanzar excepción, el CSV original sigue siendo válido
 
-def generar_csv_nimbi(conn, columnas):
+def generar_csv_nimbi(conn):
     """Genera archivo CSV con formato cliente Nimbi desde PostgreSQL"""
     log("Generando archivo CSV...")
     
@@ -279,14 +330,31 @@ def generar_csv_nimbi(conn, columnas):
         inicio = time.time()
         
         # Extraer datos de PostgreSQL a DataFrame
+        # Usar el orden de columnas de la tabla para el CSV
+        columnas_tabla_csv = [
+            'codcli',
+            'anio_beneficio',
+            'periodo_beneficio',
+            'codigo_beneficio',
+            'descripcion_beneficio',
+            'monto_beneficio',
+            'origen_beneficio',
+            'tipo_beneficio',
+            'aplica_en',
+            'estado_beneficio',
+            'fecha_corte',
+            'anio_ingreso_institucion'
+        ]
         query = f"""
-        SELECT {', '.join(columnas)}
+        SELECT {', '.join(columnas_tabla_csv)}
         FROM nimbi."05_beneficios_alumnos"
         ORDER BY 1
         """
         
         log("Extrayendo datos de PostgreSQL para CSV...")
-        df = pd.read_sql(query, conn)
+        # Usar SQLAlchemy engine para evitar warnings de pandas
+        engine = crear_engine_postgresql()
+        df = pd.read_sql(query, engine)
         
         if df.empty:
             log("⚠ No hay datos para generar CSV")
@@ -487,7 +555,7 @@ def main():
         csv_path = None
         try:
             log("\n4. Generando archivo CSV...")
-            csv_path = generar_csv_nimbi(conn_pg, columnas)
+            csv_path = generar_csv_nimbi(conn_pg)
         except Exception as e:
             log(f"⚠ Error generando CSV: {e}")
         finally:

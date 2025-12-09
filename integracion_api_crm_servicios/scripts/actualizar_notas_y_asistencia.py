@@ -17,6 +17,7 @@ import pandas as pd
 import paramiko
 from pathlib import Path
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
 
 # Cargar variables de entorno desde el .env del proyecto
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -47,6 +48,15 @@ POSTGRES_CONFIG = {
     'port': int(os.getenv('DB_PORT', '5432')),
 }
 DB_SEARCH_PATH = os.getenv('DB_SEARCH_PATH', 'nimbi, public')
+
+def crear_engine_postgresql():
+    """Crea un engine de SQLAlchemy para PostgreSQL"""
+    connection_string = (
+        f"postgresql://{POSTGRES_CONFIG['user']}:{POSTGRES_CONFIG['password']}"
+        f"@{POSTGRES_CONFIG['host']}:{POSTGRES_CONFIG['port']}"
+        f"/{POSTGRES_CONFIG['database']}"
+    )
+    return create_engine(connection_string)
 
 # Configuración de CSV (formato Nimbi)
 CSV_CONFIG = {
@@ -286,7 +296,9 @@ def generar_csv_nimbi(conn, columnas):
         """
         
         log("Extrayendo datos de PostgreSQL para CSV...")
-        df = pd.read_sql(query, conn)
+        # Usar SQLAlchemy engine para evitar warnings de pandas
+        engine = crear_engine_postgresql()
+        df = pd.read_sql(query, engine)
         
         if df.empty:
             log("⚠ No hay datos para generar CSV")

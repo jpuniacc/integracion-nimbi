@@ -55,6 +55,8 @@ Las dependencias se encuentran en `integracion_api_crm_servicios/requirement.txt
 - `pandas==2.2.3` - Manipulación de datos y generación de CSV
 - `paramiko==3.5.1` - Cliente SFTP
 - `python-dotenv==1.2.1` - Gestión de variables de entorno
+- `sqlalchemy==2.0.36` - Motor SQL para pandas (evita warnings)
+- `requests==2.32.5` - Cliente HTTP para APIs externas
 
 ## ⚙️ Configuración
 
@@ -82,6 +84,18 @@ SFTP_USER=nimbi
 SFTP_PASSWORD=contraseña
 SFTP_PORT=22
 SFTP_TIMEOUT=600
+
+# API CRM (para actualizar_solicitudes_crm.py)
+API_BASE_URL=https://servicios-api.uniacc.crm-mantis.cl
+API_USUARIO=usuario_api
+API_CLAVE=contraseña_api
+API_TIMEOUT_CONEXION=30      # Timeout para establecer conexión (segundos)
+API_TIMEOUT_LECTURA=300      # Timeout para leer respuesta (segundos, 5 min por defecto)
+API_MAX_REINTENTOS=3         # Número máximo de reintentos por mes
+API_DELAY_REINTENTO=5        # Segundos base entre reintentos
+API_DELAY_ENTRE_MESES=10     # Segundos de espera entre descargas de meses
+FECHA_INICIO_ANO=2025        # Año inicial para descargar solicitudes
+FECHA_INICIO_MES=1           # Mes inicial (siempre enero)
 ```
 
 ### 2. Instalación de Dependencias
@@ -140,7 +154,7 @@ cd integracion_api_crm_servicios/scripts
 | `actualizar_datos_moodle_operacional.py` | Datos operacionales de Moodle | `7__Datos_moodle_operacional.csv` |
 | `actualizar_datos_sies.py` | Datos SIES (Sistema de Información de Educación Superior) | `11__Datos_sies.csv` |
 | `actualizar_informe_finanzas.py` | Información financiera | `13__Informacion_finanzas.csv` |
-| `actualizar_solicitudes_crm.py` | Solicitudes del CRM | `14__Solicitudes_crm.csv` |
+| `actualizar_solicitudes_crm.py` | Solicitudes del CRM desde API externa | No genera CSV (solo carga a PostgreSQL) |
 
 ## 📁 Formato de Archivos CSV
 
@@ -199,6 +213,24 @@ rm integracion_api_crm_servicios/temp_csv/*.csv
 - La conexión SFTP maneja automáticamente entornos con chroot jail
 - Todos los scripts incluyen manejo de errores y logging detallado
 - Los archivos CSV se validan antes de la subida a SFTP
+
+### Script de Solicitudes CRM (`actualizar_solicitudes_crm.py`)
+
+Este script tiene características especiales:
+
+- **Descarga dinámica**: Descarga automáticamente todos los meses desde 01/2025 hasta el mes actual
+- **Soporte multi-año**: Funciona automáticamente cuando pasan múltiples años (ej: desde 01/2025 hasta 12/2026)
+- **Reintentos automáticos**: Reintenta automáticamente (3 veces por defecto) si hay errores de conexión o timeout
+- **Manejo de errores robusto**: Maneja timeouts, conexiones interrumpidas y errores de la API
+- **Delay configurable**: Espera 10 segundos entre descargas de meses para no sobrecargar la API
+- **Backup temporal**: Guarda un backup JSON antes de insertar en PostgreSQL (se elimina automáticamente después)
+
+**Configuración recomendada para APIs lentas:**
+```env
+API_TIMEOUT_LECTURA=600      # 10 minutos
+API_MAX_REINTENTOS=5         # 5 intentos
+API_DELAY_ENTRE_MESES=15     # 15 segundos entre meses
+```
 
 ## 🤝 Contribución
 
