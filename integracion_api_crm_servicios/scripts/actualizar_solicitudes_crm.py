@@ -134,7 +134,7 @@ def descargar_solicitudes(token, ano, mes):
                 log(f"✗ No se pudo descargar {mes:02d}/{ano} después de {max_reintentos} intentos")
                 return []
     
-    return []
+        return []
 
 def obtener_meses_a_descargar():
     """
