@@ -20,6 +20,14 @@ integracion_api_crm_servicios/scripts/logs/*.log
 # Backups
 integracion_api_crm_servicios/scripts/backups/*.json
 
+# Secretos OAuth de Google Workspace (solo en el servidor)
+integracion_api_crm_servicios/scripts/google/token.json
+integracion_api_crm_servicios/scripts/google/credentials.json
+
+# Dump local de usuarios, no es código fuente
+integracion_api_crm_servicios/usuarios_gsuite.csv
+integracion_api_crm_servicios/scripts/google/*.csv
+
 # Archivos de Python
 __pycache__/
 *.py[cod]
