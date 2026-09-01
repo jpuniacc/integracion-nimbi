@@ -1,6 +1,36 @@
 # Resumen de Tablas y Campos - Integración Nimbi
 
-Este documento describe las tablas que se actualizan mediante los scripts de integración, incluyendo una descripción de cada campo.
+**Documento de entrega**  
+**Versión:** 1.0  
+**Última actualización:** Enero 2026
+
+---
+
+## Introducción
+
+Este documento describe las tablas de la base de datos **PostgreSQL** (schema `nimbi`) que se actualizan mediante los scripts de integración del proyecto **Integración Nimbi**. Incluye la descripción de cada tabla, su script asociado, archivos CSV generados (cuando aplica) y el detalle de todos los campos.
+
+### Alcance
+
+- **Origen de datos:** SQL Server (eCampus5), API CRM externa y Google Workspace API
+- **Destino:** PostgreSQL, schema `nimbi`
+- **Formato de actualización:** TRUNCATE + INSERT (carga completa por ejecución)
+- **Archivos CSV:** Generados por 3 scripts y subidos a servidor SFTP (ver tabla inferior)
+
+### Índice de scripts y tablas
+
+| # | Tabla | Script | Archivo CSV |
+|---|-------|--------|-------------|
+| 1 | `01_identificadores_y_data_operacional` | actualizar_datos_identificadores_y_data_operacional.py | `1__Identificadores_y_data_operacional.csv` |
+| 2 | `03_encuesta_docente` | actualizar_encuesta_docente.py | No |
+| 3 | `04_notas_y_asistencias` | actualizar_notas_y_asistencia.py | `4__Notas_y_asistencia.csv` |
+| 4 | `05_beneficios_alumnos` | actualizar_beneficios_alumnos.py | `05_beneficios_alumnos.csv` |
+| 5 | `07_datos_moodle_operacional` | actualizar_datos_moodle_operacional.py | No |
+| 6 | `09_datos_academicos` | actualizar_datos_academicos.py | No |
+| 7 | `10_solicitudes_crm` | actualizar_solicitudes_crm.py | No |
+| 8 | `11_datos_sies` | actualizar_datos_sies.py | No |
+| 9 | `12_usuarios_google` | actualizar_usuarios_google.py | No |
+| 10 | `13_informacion_finanzas` | actualizar_informe_finanzas.py | No |
 
 ---
 
@@ -55,6 +85,8 @@ Este documento describe las tablas que se actualizan mediante los scripts de int
 - **FECHA_REGISTRO_2024**: Fecha de registro del estado académico 2024
 - **ESTADO_ACADEMICO_2025**: Estado académico en el año 2025
 - **FECHA_REGISTRO_2025**: Fecha de registro del estado académico 2025
+- **ESTADO_ACADEMICO_2026**: Estado académico en el año 2026
+- **FECHA_REGISTRO_2026**: Fecha de registro del estado académico 2026
 
 #### Información de Admisión
 - **NEM**: Nota de Enseñanza Media
@@ -78,6 +110,8 @@ Este documento describe las tablas que se actualizan mediante los scripts de int
 - **ES_CAMBIO_CARRERA**: Indica si el alumno ha realizado cambio de carrera (SI/NO)
 - **FECHA_CAMBIO**: Fecha del cambio de carrera (si aplica)
 - **FECHA_CORTE**: Fecha de corte de la información
+- **ADVANCE**: Indicador de avance o estado adicional del alumno
+- **ULTIMO_INGRESO_PORTAL**: Fecha/hora del último ingreso del alumno al portal institucional
 
 ---
 
@@ -284,7 +318,7 @@ Este documento describe las tablas que se actualizan mediante los scripts de int
 ## 6. `09_datos_academicos`
 
 **Script:** `actualizar_datos_academicos.py`  
-**Archivo CSV:** `9__Datos_académicos.csv`  
+**Archivo CSV:** No genera CSV  
 **Descripción:** Información académica de alumnos de pregrado (vigentes, eliminados, suspendidos)
 
 ### Campos:
@@ -405,7 +439,33 @@ Este documento describe las tablas que se actualizan mediante los scripts de int
 
 ---
 
-## 9. `13_informacion_finanzas`
+## 9. `12_usuarios_google`
+
+**Script:** `actualizar_usuarios_google.py`  
+**Archivo CSV:** No genera CSV  
+**Descripción:** Usuarios del directorio de Google Workspace (extraídos vía API de Google Admin). Origen: Google Workspace API (OAuth2 o Service Account).
+
+### Campos:
+
+#### Identificación del Usuario
+- **email**: Correo electrónico del usuario (cuenta de Google)
+- **nombre**: Nombre del usuario
+- **apellido**: Apellido del usuario
+- **nombre_completo**: Nombre completo (nombre + apellido)
+
+#### Estado y Organización
+- **estado**: Estado de la cuenta (activo, suspendido, etc.)
+- **unidad_organizativa**: Unidad organizativa asignada en el directorio
+
+#### Información de Acceso
+- **ultima_conexion**: Fecha/hora de última conexión del usuario (si está disponible)
+
+#### Información General
+- **fecha_corte**: Fecha de corte de la información
+
+---
+
+## 10. `13_informacion_finanzas`
 
 **Script:** `actualizar_informe_finanzas.py`  
 **Descripción:** Información financiera de alumnos (matrículas, aranceles, pagos, descuentos, becas)
@@ -459,16 +519,54 @@ Este documento describe las tablas que se actualizan mediante los scripts de int
 
 ## Notas Generales
 
-- **FECHA_CORTE**: Campo común en todas las tablas que indica la fecha en que se realizó la extracción de datos
-- Todas las tablas se actualizan mediante **TRUNCATE** (limpieza completa) antes de insertar nuevos datos
-- Los scripts extraen datos desde **SQL Server** y los cargan en **PostgreSQL** (schema `nimbi`)
-- Las siguientes tablas generan archivos CSV que se suben automáticamente al servidor SFTP:
-  - `01_identificadores_y_data_operacional` → `1__Identificadores_y_data_operacional.csv`
-  - `04_notas_y_asistencias` → `4__Notas_y_asistencia.csv`
-  - `05_beneficios_alumnos` → `05_beneficios_alumnos.csv`
-- Los datos se filtran generalmente para incluir solo información desde 2022 en adelante
+### Convenciones
+
+- **FECHA_CORTE**: Campo común en la mayoría de las tablas; indica la fecha en que se realizó la extracción de datos.
+- **Nomenclatura**: Los nombres de campos en la base de datos usan minúsculas y guiones bajos (snake_case); en este documento se presentan en MAYÚSCULAS para facilitar la lectura.
+
+### Proceso de actualización
+
+- Todas las tablas se actualizan mediante **TRUNCATE** (limpieza completa) antes de insertar los nuevos datos.
+- **Origen SQL Server:** La mayoría de los scripts extraen datos desde **SQL Server** (eCampus5) y los cargan en **PostgreSQL** (schema `nimbi`).
+- **Origen API CRM:** La tabla `10_solicitudes_crm` se alimenta desde una **API externa** (CRM).
+- **Origen Google Workspace:** La tabla `12_usuarios_google` se alimenta desde la **API de Google Admin** (directorio de usuarios), con autenticación OAuth2 o Service Account.
+
+### Archivos CSV y SFTP
+
+Las siguientes tablas generan archivos CSV en el directorio `temp_csv/` y se suben automáticamente al servidor SFTP configurado. Formato: encoding UTF-8, separador punto y coma (`;`), delimitador de texto comillas dobles (`"`).
+
+| Tabla | Archivo CSV generado |
+|-------|----------------------|
+| `01_identificadores_y_data_operacional` | `1__Identificadores_y_data_operacional.csv` |
+| `04_notas_y_asistencias` | `4__Notas_y_asistencia.csv` |
+| `05_beneficios_alumnos` | `05_beneficios_alumnos.csv` |
+
+El resto de las tablas solo cargan datos en PostgreSQL y no generan archivos CSV en este flujo.
+
+### Criterios de filtrado
+
+- Los datos se filtran generalmente para incluir información desde **2022** en adelante, salvo indicación contraria en cada script.
+- La tabla `10_solicitudes_crm` descarga datos desde **enero 2025** en adelante (configurable por variables de entorno).
 
 ---
 
-**Última actualización:** Noviembre 2025
+## Referencia rápida de tablas
+
+| Tabla | Script | Descripción breve |
+|-------|--------|-------------------|
+| `01_identificadores_y_data_operacional` | actualizar_datos_identificadores_y_data_operacional.py | Identificadores y datos operacionales de alumnos (pregrado) |
+| `03_encuesta_docente` | actualizar_encuesta_docente.py | Resultados de encuestas de evaluación docente |
+| `04_notas_y_asistencias` | actualizar_notas_y_asistencia.py | Notas y asistencia por ramo/curso |
+| `05_beneficios_alumnos` | actualizar_beneficios_alumnos.py | Becas y beneficios asignados a alumnos |
+| `07_datos_moodle_operacional` | actualizar_datos_moodle_operacional.py | Datos operacionales de cursos y actividades en Moodle |
+| `09_datos_academicos` | actualizar_datos_academicos.py | Información académica resumida por alumno |
+| `10_solicitudes_crm` | actualizar_solicitudes_crm.py | Solicitudes/incidencias del CRM (desde API) |
+| `11_datos_sies` | actualizar_datos_sies.py | Información SIES (Sistema de Información de Educación Superior) |
+| `12_usuarios_google` | actualizar_usuarios_google.py | Usuarios del directorio de Google Workspace |
+| `13_informacion_finanzas` | actualizar_informe_finanzas.py | Información financiera (matrícula, arancel, pagos) |
+
+---
+
+**Documento de entrega — Integración Nimbi**  
+**Última actualización:** Enero 2026
 

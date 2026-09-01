@@ -218,6 +218,8 @@ SCRIPTS=(
     "actualizar_encuesta_docente.py"
     "actualizar_informe_finanzas.py"
     "actualizar_solicitudes_crm.py"
+    "actualizar_usuarios_google.py"
+    "sincronizar_conexion_google.py"
 )
 
 # Ejecutar cada script
