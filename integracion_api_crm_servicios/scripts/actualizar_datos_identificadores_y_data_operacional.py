@@ -253,7 +253,11 @@ def cargar_a_postgresql(datos, columnas):
             'fecha_registro_2026',
             'estado_academico_2026',
             'advance',
-            'ultimo_ingreso_portal'
+            'ultimo_ingreso_portal',
+            'tiene_discapacidad',
+            'descripcion_discapacidad',
+            'fecha_matricula_efectiva',
+            'periodo_matricula_efectiva'
         ]
         
         # Mapear nombres de columnas de la query a minúsculas para comparación
@@ -427,7 +431,11 @@ def generar_csv_nimbi(conn):
             'fecha_registro_2026',
             'estado_academico_2026',
             'advance',
-            'ultimo_ingreso_portal'
+            'ultimo_ingreso_portal',
+            'tiene_discapacidad',
+            'descripcion_discapacidad',
+            'fecha_matricula_efectiva',
+            'periodo_matricula_efectiva'
         ]
         query = f"""
         SELECT {', '.join(columnas_tabla_csv)}

@@ -113,6 +113,14 @@ Este documento describe las tablas de la base de datos **PostgreSQL** (schema `n
 - **ADVANCE**: Indicador de avance o estado adicional del alumno
 - **ULTIMO_INGRESO_PORTAL**: Fecha/hora del último ingreso del alumno al portal institucional
 
+#### Discapacidad
+- **TIENE_DISCAPACIDAD**: Indica si el alumno declara discapacidad (SI/NO), derivado del campo fuente
+- **DESCRIPCION_DISCAPACIDAD**: Descripción o tipo de discapacidad (ej. Ninguna, o el valor registrado en origen)
+
+#### Matrícula
+- **FECHA_MATRICULA_EFECTIVA**: Fecha de matrícula efectiva del alumno (formato YYYY-MM-DD)
+- **PERIODO_MATRICULA_EFECTIVA**: Período de matrícula efectiva del alumno (formato AÑO-PERIODO, ej. 2025-1)
+
 ---
 
 ## 2. `03_encuesta_docente`
@@ -186,6 +194,7 @@ Este documento describe las tablas de la base de datos **PostgreSQL** (schema `n
 - **SECCION**: Sección del ramo
 - **ID_SECCION**: ID único de la sección
 - **NOMBRE_PROFESOR**: Nombre del profesor
+- **JORNADA**: Jornada del ramo/sección (ej. Diurno, Vespertino, etc.), proveniente de `PR_NOTAS.JORNADA`
 
 #### Información Académica
 - **PERIODO**: Período académico
